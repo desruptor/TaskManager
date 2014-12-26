@@ -25,7 +25,8 @@ namespace Mephi.Cybernetics.Nm.TaskManager
 
         public void AddTask(TaskRE task)
         {
-            _pendingTaskList.Add(task);
+            if(!IsTaskDone(task))
+                _pendingTaskList.Add(task);
         }
 
         public void OnPendingCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -34,19 +35,26 @@ namespace Mephi.Cybernetics.Nm.TaskManager
             {
                 if(e.NewItems != null)
                 {
-                    //Проверить если уже есть такая таска с такими параметрами то вернуть ответ сразу
-                    var k = _pendingTaskList[0];
-                    if (_threadManager.TryGetThread(k))
+                    var t = _pendingTaskList[0];
+                    if (_threadManager.TryGetThread(t))
                         _pendingTaskList.RemoveAt(0);
                 }
-
-
             }
         }
 
         public void OnCompletedCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            //
+            lock(e)
+            {
+                if(e.NewItems != null)
+                {
+                    var t = _pendingTaskList[0];
+                    if(_threadManager.TryGetThread(t))
+                    {
+                        _pendingTaskList.RemoveAt(0);
+                    }
+                }
+            }
         }
 
         public TaskQueue()
@@ -63,9 +71,10 @@ namespace Mephi.Cybernetics.Nm.TaskManager
         {
             foreach (var taskRE in _completedTaskList)
             {
-                if ( taskRE.Arguments.GetHashCode() == task.Arguments.GetHashCode())
+                if ((task.Name == taskRE.Name) && ( taskRE.Arguments.GetHashCode() == task.Arguments.GetHashCode()))
                 {
-                    Console.WriteLine("kjyhjjyj");
+                    task = taskRE;//We need moar test for this
+                    return true;
                 }
             }
             return false;
